@@ -1,0 +1,40 @@
+#!/bin/bash
+
+REPO_NAME="misak-repo"
+REPO_PATH="x86_64"
+
+update_repo() {
+	local files=$1
+	local temp
+	
+	repo-add -n "${REPO_PATH}/${REPO_NAME}.db.tar.gz" "$REPO_PATH/$files"
+}
+
+read_package_name() {
+	local package=$1
+	if [[ -z $package ]] || [[ ! -f $package ]]; then
+		echo "read_package_name called without a valid argument. Aborting"
+		exit 1
+	fi
+
+	pacman -Qqp "$package"
+}
+
+full_repo_update() {
+	for package in "$REPO_PATH"/*.pkg.tar*; do
+		packagelist="$packagelist $(read_package_name "$package")"
+	done
+	packagelist=$(echo "$packagelist" | tr ' ' '\n' | uniq)
+
+	for package_name in $packagelist; do
+		current=$(echo "${REPO_PATH}/${package_name}"*.pkg.tar* | tr ' ' '\n' | xargs ls -l --time-style=+%s | sort -k 6 | awk '{ print $7 }' | tail -n 1)
+		update_repo "${current##*/}"
+	done
+
+}
+
+full_repo_update
+rm $REPO_PATH/misak-repo.files
+cp $REPO_PATH/misak-repo.files.tar.gz $REPO_PATH/misak-repo.files
+rm $REPO_PATH/misak-repo.db
+cp $REPO_PATH/misak-repo.db.tar.gz $REPO_PATH/misak-repo.db

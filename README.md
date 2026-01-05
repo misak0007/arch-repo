@@ -4,6 +4,6 @@ Repository for archlinux.
 Add to /etc/pacman.conf :
 <pre><code>
 [misak-repo]
-Server = https://raw.githubusercontent.com/misak0007/arch-repo/main/$arch
+Server = https://github.com/misak0007/arch-repo/raw/refs/heads/main/$arch
 SigLevel = Never
  </code></pre>
