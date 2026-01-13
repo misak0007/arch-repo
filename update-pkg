@@ -34,12 +34,15 @@ full_repo_update() {
 }
 
 git pull
+wait
 full_repo_update
+wait
 rm $REPO_PATH/misak-repo.files
 cp $REPO_PATH/misak-repo.files.tar.gz $REPO_PATH/misak-repo.files
 rm $REPO_PATH/misak-repo.db
 cp $REPO_PATH/misak-repo.db.tar.gz $REPO_PATH/misak-repo.db
+wait
 git add .
 git commit -m "Add package."
 git push
-
+wait
