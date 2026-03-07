@@ -48,8 +48,8 @@ if [ ! -f ${current}/.initialized ] || [ "$1" == "init" ];then
 	init_lfs
 fi
 
-git pull
-wait
+#git pull
+#wait
 full_repo_update
 wait
 rm $REPO_PATH/misak-repo.files
