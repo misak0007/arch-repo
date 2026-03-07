@@ -2,6 +2,17 @@
 
 REPO_NAME="misak-repo"
 REPO_PATH="x86_64"
+current=$(pwd)
+
+init_lfs() {
+	cd ${current}
+	git lfs install --local
+	git lfs pull
+	echo "lfs is initialized" > ${current}/.initialized
+	if [ ! "$(git config get pull.rebase)" == "true" ];then
+		git config pull.rebase true
+	fi
+}
 
 update_repo() {
 	local files=$1
@@ -32,6 +43,10 @@ full_repo_update() {
 	done
 
 }
+
+if [ ! -f ${current}/.initialized ] || [ "$1" == "init" ];then
+	init_lfs
+fi
 
 git pull
 wait
