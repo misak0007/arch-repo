@@ -3,6 +3,53 @@
 REPO_NAME="misak-repo"
 REPO_PATH="x86_64"
 current=$(pwd)
+AurHelper=yay
+
+# e.g. IgnorePkgs=('pkg1' 'pkg2')
+IgnorePkgs=()
+
+IgnorePkg=($(sort <<<"${IgnorePkg[*]}"));
+
+GitPkgs=('crow-translate-git'
+	)
+
+# Regular Colors
+Black="\e[0;30m"
+Red="\e[0;31m"
+Green="\e[0;32m"
+Yellow="\e[0;33m"
+Blue="\e[0;34m"
+Purple="\e[0;35m"
+Cyan="\e[0;36m"
+White="\e[0;37m"
+
+clear_term() {
+	clear -x
+}
+
+msg() {
+    ALL_OFF="\e[1;0m"
+    BOLD="\e[1;1m"
+    GREEN="${BOLD}\e[1;32m"
+      local mesg=$1; shift
+      printf "${GREEN}==>${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+ }
+
+info() {
+    ALL_OFF="\e[1;0m"
+    BOLD="\e[1;1m"
+    BLUE="${BOLD}\e[1;34m"
+      local mesg=$(echo "$1" | sed "s/%//g"); shift
+      printf "${BLUE}  ->${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+ }
+
+info_red() {
+    ALL_OFF="\e[1;0m"
+    BOLD="\e[1;1m"
+    BLUE="${BOLD}${Red}"
+      local mesg=$(echo "$1" | sed -i "s/%//g"); shift
+      printf "${BLUE}  ->${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+ }
 
 init_lfs() {
 	cd ${current}
@@ -48,6 +95,42 @@ if [ ! -f ${current}/.initialized ] || [ "$1" == "init" ];then
 	init_lfs
 fi
 
+build_package() {
+	if [ ! -d ${current}/build ];then mkdir ${current}/build;fi
+	cd ${current}/build
+	git clone https://aur.archlinux.org/${1}.git
+	cd ${current}/build/${1}
+	makepkg
+	if [ $? -ne 0 ];then
+		info_red "Nepodařilo se zkompilovat balíček: ${1}"
+		exit
+	fi
+	cp
+}
+
+test_update_package() {
+	# get changed scripts
+	aur=$(${AurHelper} -Quaq)
+
+	# setup arrays
+	IFS=$'\n' ignored=("$(sort <<<"${IgnorePkgs[*]}")"); unset IFS
+	IFS=$'\n' changed=("$(sort <<<"${aur[*]}")"); unset IFS
+
+	# create a filtered array
+	filtered=$(comm -13 <(printf "%s\n" "${ignored[@]}") <(printf "%s\n" "${changed[@]}"))
+
+	# create the notification
+	notification=$(for f in "${filtered[@]}"; do echo "${f}"; done)
+
+	# display notification if the filtered array is not empty
+	if  [[ -n "${notification}" ]]; then
+	        echo "${notification}"
+	fi
+}
+
+
+#test_update_package
+#exit
 #git pull
 #wait
 full_repo_update
