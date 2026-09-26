@@ -4,11 +4,19 @@ REPO_NAME="misak-repo"
 REPO_PATH="x86_64"
 current=$(pwd)
 AurHelper=yay
+if [ ! -d ${current}/aur-hash ];then mkdir ${current}/aur-hash;fi
+if [ ! -d ${current}/build ];then mkdir ${current}/build;fi
 
 # e.g. IgnorePkgs=('pkg1' 'pkg2')
 IgnorePkgs=()
 
 IgnorePkg=($(sort <<<"${IgnorePkg[*]}"));
+
+AurPkgs=('cura-bin'
+	 'protobuf-git'
+	 'ffmpeg-cuda'
+	 'google-chrome'
+	)
 
 GitPkgs=('crow-translate-git'
 	)
@@ -96,16 +104,26 @@ if [ ! -f ${current}/.initialized ] || [ "$1" == "init" ];then
 fi
 
 build_package() {
-	if [ ! -d ${current}/build ];then mkdir ${current}/build;fi
-	cd ${current}/build
-	git clone https://aur.archlinux.org/${1}.git
+	if [ -f ${current}/patch/${1}.patch ];then
+		if [ -f ${current}/build/${1} ];then rm -rf ${current}/build/${1};fi
+		cd ${current}/build
+		git clone https://aur.archlinux.org/${1}.git
+		cd ${current}/build/${1}
+		patch -Np1 -i ${current}/patch/${1}.patch
+	elif [ ! -f ${current}/build/${1} ];then
+		cd ${current}/build
+		git clone https://aur.archlinux.org/${1}.git
+	fi
 	cd ${current}/build/${1}
-	makepkg
+	git pull
+	makepkg -Ccs
 	if [ $? -ne 0 ];then
 		info_red "Nepodařilo se zkompilovat balíček: ${1}"
 		exit
 	fi
-	cp
+	mv *.pkg.tar* ${current}/x86_64
+	echo "$(git log -n 1 --pretty=format:"%H")" > ${current}/aur-hash/${1}
+	
 }
 
 test_update_package() {
@@ -128,10 +146,36 @@ test_update_package() {
 	fi
 }
 
+get_commit_hash() {
+	git_commit_hash=$(git ls-remote https://aur.archlinux.org/$1.git | grep refs/heads/master | cut -f 1)
+	if [ -f ${current}/aur-hash/$1 ];then
+		git_commit_hash_saved=$(cat ${current}/aur-hash/$1)
+		if [ "${git_commit_hash}" == "${git_commit_hash_saved}" ];then
+			echo "true"
+		else
+			echo "false"
+		fi
+	else
+		echo "false"
+	fi
+}
 
+check_change_aur_package() {
+	
+	for package in "${AurPkgs[@]}"; do
+		if [ "$(get_commit_hash ${package})" == "false" ];then
+			build_package ${package}
+		fi
+#		echo "${package}"
+		#packagelist="$packagelist $(read_package_name "$package")"
+	done
+
+}
+
+git pull
+#check_change_aur_package
 #test_update_package
 #exit
-#git pull
 #wait
 full_repo_update
 wait
